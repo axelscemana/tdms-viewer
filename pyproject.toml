@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tdms-viewer"
+version = "0.1.0"
+description = "Visionneuse .tdms gratuite et open-source (sans LabVIEW ni DIAdem)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "nptdms>=1.8",
+  "streamlit>=1.35",
+  "plotly>=5.22",
+  "pandas>=2.2",
+  "numpy>=1.26",
+  "scipy>=1.13",
+  "matplotlib>=3.8",
+  "reportlab>=4.0",
+]
+
+[project.scripts]
+tdms-viewer = "cli:main"
+
+[tool.setuptools]
+py-modules = ["app", "tdms_utils", "analysis", "report", "generate_test_tdms", "bench_big", "cli"]

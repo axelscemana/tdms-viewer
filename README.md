@@ -1,5 +1,7 @@
 # TDMS Viewer & Report
 
+[![CI](https://github.com/axelscemana/tdms-viewer/actions/workflows/ci.yml/badge.svg)](https://github.com/axelscemana/tdms-viewer/actions)
+
 Outil gratuit/open-source pour ouvrir, visualiser et exporter des fichiers `.tdms` (NI/LabVIEW) **sans licence DIAdem ni LabVIEW**.
 
 ![demo](docs/demo.gif)
@@ -27,14 +29,12 @@ Fichiers réels de test (fournis avec `nptdms`) : `data/real_samples/`.
 Lecture streaming (`TdmsFile.open`), métadonnées sans charger les données,
 décimation côté serveur, re-fetch pleine résolution au zoom.
 
-Mesuré sur `data/big_500mo.tdms` (15 M pts/canal, 480 Mo) via `python bench_big.py` :
+Mesuré via `python bench_big.py` (ou `tdms-viewer bench --file ...`) :
 
-| étape | temps |
-|---|---|
-| structure (sans charger) | 0.03 s |
-| courbe affichée 2000 pts (×7500) | 0.16 s |
-| re-fetch zoom 100k pts | 0.01 s |
-| FFT 100k pts (raie 50 Hz OK) | instantané |
+| fichier | structure | courbe 2000 pts | zoom 100k | FFT |
+|---|---|---|---|---|
+| 480 Mo (15 M pts/canal) | 0.03 s | 0.16 s (×7500) | 0.01 s | instantanée, 50 Hz OK |
+| **2 Go (64 M pts/canal)** | **0.06 s** | **0.74 s (×32000)** | **0.02 s** | **instantanée, 50 Hz OK** |
 
 Excel/DIAdem Viewer calent au-delà de ~500 Mo ; ici le fichier entier n'est jamais chargé.
 
