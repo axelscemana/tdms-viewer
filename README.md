@@ -2,7 +2,7 @@
 
 Outil gratuit/open-source pour ouvrir, visualiser et exporter des fichiers `.tdms` (NI/LabVIEW) **sans licence DIAdem ni LabVIEW**.
 
-![demo](docs/demo.gif) *(à enregistrer : 30 s de drag-drop → courbes → FFT → PDF)*
+![demo](docs/demo.gif)
 
 ## Fonctionnalités
 
