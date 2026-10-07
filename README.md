@@ -24,6 +24,19 @@ streamlit run app.py                                    # http://localhost:8501
 
 Fichiers réels de test (fournis avec `nptdms`) : `data/real_samples/`.
 
+## Docker (pour les PC sans Python)
+
+```powershell
+docker build -t tdms-viewer .
+docker run -p 8501:8501 tdms-viewer        # http://localhost:8501
+docker run -p 8501:8501 -v ${PWD}/data:/app/data tdms-viewer   # + mode fichier local
+```
+
+## Exemples
+
+- Analyse (filtre + pics + FFT) : ![fft](docs/fft.png)
+- Rapport PDF : [docs/rapport_exemple.pdf](docs/rapport_exemple.pdf)
+
 ## Pourquoi c'est rapide sur gros fichiers
 
 Lecture streaming (`TdmsFile.open`), métadonnées sans charger les données,
