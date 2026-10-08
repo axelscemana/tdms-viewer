@@ -35,6 +35,8 @@ python -m cli export --input data/lot_client --out exports --recursive --split 5
 ```
 
 - Streaming par blocs (RAM constante, OK 2 Go), `manifest.json` par fichier.
+- CSV avec séparateur `;` : s'ouvre directement en 2 colonnes dans Excel français
+  (plus de Convertir / Texte en colonnes).
 - Noms LabVIEW avec `/ :` assainis pour Windows. Vieux `.tdms_index` ignoré auto.
 - Valeurs **scalées** (nptdms `scaled=True`) : le CSV contient des Volts, et le manifest
   trace `scaling_applied, scale_types, unit`. Preuve sur lot réel VeriStand :

@@ -1,5 +1,6 @@
 """Tests autonomes : le fichier .tdms est genere a la volee (pas de donnees commitees)."""
 import numpy as np
+import pandas as pd
 import pytest
 from nptdms import TdmsWriter, RootObject, GroupObject, ChannelObject
 
@@ -72,13 +73,12 @@ def test_pdf_builds(sample_tdms, tmp_path):
 
 
 def test_export_channel_chunked(sample_tdms, tmp_path):
-    import pandas as pd
-    from tdms_utils import export_channel_to_csv
+    from tdms_utils import export_channel_to_csv, read_export_csv
     out = tmp_path / "accel_x.csv"
     info = export_channel_to_csv(sample_tdms, "Vibration", "accel_x",
                                  out, chunk_size=3000)
     assert info["rows"] == N
-    df = pd.read_csv(out)
+    df = read_export_csv(out)
     assert list(df.columns) == ["x", "y"]
     assert len(df) == N
     # axe temps : wf_increment = 1/FS
@@ -124,17 +124,24 @@ def test_export_manifest_scaling_fields(sample_tdms, tmp_path):
 
 
 def test_export_split_excel_parts(sample_tdms, tmp_path):
-    import pandas as pd
-    from tdms_utils import export_channel_to_csv
+    from tdms_utils import export_channel_to_csv, read_export_csv
     out = tmp_path / "accel_x.csv"
     info = export_channel_to_csv(sample_tdms, "Vibration", "accel_x",
                                  out, chunk_size=3000, split_rows=4000)
     assert info["rows"] == N
     assert len(info["parts"]) == 3  # 4000 + 4000 + 2000
     assert [p["rows"] for p in info["parts"]] == [4000, 4000, 2000]
-    full = pd.read_csv(out)
+    full = read_export_csv(out)
     assert len(full) == N
-    recat = pd.concat([pd.read_csv(p["file"]) for p in info["parts"]],
+    recat = pd.concat([read_export_csv(p["file"]) for p in info["parts"]],
                       ignore_index=True)
     assert len(recat) == N
     assert recat["y"].equals(full["y"])
+
+
+def test_export_separator_excel_fr(sample_tdms, tmp_path):
+    from tdms_utils import export_channel_to_csv
+    out = tmp_path / "sep.csv"
+    export_channel_to_csv(sample_tdms, "Vibration", "accel_x", out)
+    header = out.read_text(encoding="utf-8").splitlines()[0]
+    assert header == "x;y"  # ouverture directe en 2 colonnes dans Excel FR

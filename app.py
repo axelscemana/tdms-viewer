@@ -39,9 +39,10 @@ if not tdms_path:
     st.stop()
 
 if tdms_path.lower().endswith(".csv"):
-    st.subheader("Fichier CSV (export x,y)")
+    st.subheader("Fichier CSV (export x;y)")
     try:
-        df_csv = pd.read_csv(tdms_path)
+        from tdms_utils import read_export_csv
+        df_csv = read_export_csv(tdms_path)
     except Exception as e:
         st.error(f"CSV illisible : {e}")
         st.stop()

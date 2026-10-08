@@ -140,6 +140,19 @@ def scaling_info(properties: dict) -> dict:
     }
 
 
+CSV_SEPARATOR = ";"
+"""Séparateur des CSV exportés : ';' pour ouverture directe dans Excel français."""
+
+
+def read_export_csv(path: str | Path) -> pd.DataFrame:
+    """Lit un CSV exporté (séparateur ';' actuel, ',' des anciennes versions accepté)."""
+    path = Path(path)
+    with open(path, encoding="utf-8") as fh:
+        header = fh.readline()
+    sep = ";" if ";" in header else ","
+    return pd.read_csv(path, sep=sep)
+
+
 def export_channel_to_csv(path: str | Path, group: str, channel: str,
                            out_csv: str | Path, chunk_size: int = 100_000,
                            split_rows: int | None = None) -> dict:
@@ -152,6 +165,7 @@ def export_channel_to_csv(path: str | Path, group: str, channel: str,
     split_rows : si défini (ex. 500000), découpe en plus en morceaux
     <stem>_part1.csv, <stem>_part2.csv... compatibles Excel (limite
     1 048 576 lignes). Le CSV complet est toujours écrit.
+    Séparateur ';' : ouverture directe en 2 colonnes dans Excel français.
     Retourne {file, rows, parts, group, channel, + scaling_info}.
     """
     from nptdms import TdmsFile
@@ -179,13 +193,13 @@ def export_channel_to_csv(path: str | Path, group: str, channel: str,
         part_idx = 0
         part_rows = 0
         try:
-            full_fh.write("x,y\n")
+            full_fh.write("x;y\n")
             for offset in range(0, n, chunk_size):
                 end = min(n, offset + chunk_size)
                 y = np.asarray(ch[offset:end])  # scaled=True par défaut
                 x = _chunk_time_axis(inc, offset, end - offset)
                 df = pd.DataFrame({"x": x, "y": y})
-                df.to_csv(full_fh, header=False, index=False)
+                df.to_csv(full_fh, header=False, index=False, sep=CSV_SEPARATOR)
                 rows += len(df)
                 if split_rows:
                     pos = 0
@@ -196,12 +210,13 @@ def export_channel_to_csv(path: str | Path, group: str, channel: str,
                                 f"{out_csv.stem}_part{part_idx}.csv")
                             part_fh = open(part_path, "w", newline="",
                                            encoding="utf-8")
-                            part_fh.write("x,y\n")
+                            part_fh.write("x;y\n")
                             part_rows = 0
                             parts.append({"file": str(part_path), "rows": 0})
                         space = split_rows - part_rows
                         take = df.iloc[pos:pos + space]
-                        take.to_csv(part_fh, header=False, index=False)
+                        take.to_csv(part_fh, header=False, index=False,
+                                    sep=CSV_SEPARATOR)
                         part_rows += len(take)
                         parts[-1]["rows"] = part_rows
                         pos += len(take)
@@ -213,7 +228,7 @@ def export_channel_to_csv(path: str | Path, group: str, channel: str,
             if part_fh is not None:
                 part_fh.close()
     return {"file": str(out_csv), "rows": rows, "parts": parts,
-            "split_rows": split_rows,
+            "split_rows": split_rows, "separator": CSV_SEPARATOR,
             "group": group, "channel": channel, **meta}
 
 
