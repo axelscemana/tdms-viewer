@@ -139,6 +139,21 @@ def test_export_split_excel_parts(sample_tdms, tmp_path):
     assert recat["y"].equals(full["y"])
 
 
+def test_export_xlsx_workbook(sample_tdms, tmp_path):
+    import pandas as pd
+    from tdms_utils import export_file
+    m = export_file(sample_tdms, tmp_path / "xls", chunk_size=4000,
+                    out_format="xlsx", split_rows=4000)
+    wb = tmp_path / "xls" / "sample" / "sample.xlsx"
+    assert wb.exists()
+    sheets = pd.ExcelFile(wb).sheet_names
+    assert "Infos" in sheets  # canal découpé 4000/4000/2000 + Infos
+    assert len([s for s in sheets if s != "Infos"]) == 3
+    df = pd.read_excel(wb, sheet_name="Infos")
+    assert "accel_x" in df["canal"].iloc[0]
+    assert m["exported"][0]["rows"] == N
+
+
 def test_export_separator_excel_fr(sample_tdms, tmp_path):
     from tdms_utils import export_channel_to_csv
     out = tmp_path / "sep.csv"

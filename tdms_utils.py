@@ -232,16 +232,98 @@ def export_channel_to_csv(path: str | Path, group: str, channel: str,
             "group": group, "channel": channel, **meta}
 
 
+def export_file_xlsx(path: str | Path, out_dir: str | Path,
+                     chunk_size: int = 100_000,
+                     only_group: str | None = None,
+                     only_channel: str | None = None,
+                     split_rows: int | None = None) -> dict:
+    """Exporte un .tdms vers UN classeur Excel : un onglet par canal + onglet Infos.
+
+    Canaux trop longs découpés en onglets <base>_p1, <base>_p2... (limite Excel
+    1 048 575 lignes, ou split_rows si défini). Le canal est chargé en RAM
+    (OK jusqu'à quelques millions de lignes ; au-delà, préférer le CSV).
+    Retourne {workbook, exported:[{sheets, rows, group, channel, +scaling}], ...}.
+    """
+    import json
+    from nptdms import TdmsFile
+
+    path = Path(path)
+    _drop_stale_index(path)
+    out_sub = Path(out_dir) / _safe_name(path.stem)
+    out_sub.mkdir(parents=True, exist_ok=True)
+    struct = get_structure(path)
+    wb_path = out_sub / f"{_safe_name(path.stem)}.xlsx"
+    exported = []
+    infos = []
+    with pd.ExcelWriter(wb_path, engine="openpyxl") as writer:
+        with TdmsFile.open(str(path)) as f:
+            for gname, g in struct["groups"].items():
+                if only_group and gname != only_group:
+                    continue
+                for cname in g["channels"]:
+                    if only_channel and cname != only_channel:
+                        continue
+                    ch = f[gname][cname]
+                    n = len(ch)
+                    props = dict(ch.properties)
+                    meta = scaling_info(props)
+                    try:
+                        inc = float(props["wf_increment"]) \
+                            if "wf_increment" in props else None
+                    except Exception:
+                        inc = None
+                    frames = []
+                    for offset in range(0, n, chunk_size):
+                        end = min(n, offset + chunk_size)
+                        # scaled=True par défaut : valeurs en unités physiques
+                        frames.append(pd.DataFrame(
+                            {"x": _chunk_time_axis(inc, offset, end - offset),
+                             "y": np.asarray(ch[offset:end])}))
+                    full = pd.concat(frames, ignore_index=True) if len(frames) > 1 else frames[0]
+                    base = _safe_name(f"{gname}_{cname}", 27)
+                    limit = split_rows or 1_048_575
+                    sheets = []
+                    if len(full) <= limit:
+                        full.to_excel(writer, sheet_name=base, index=False)
+                        sheets.append({"sheet": base, "rows": len(full)})
+                    else:
+                        k = 1
+                        for start in range(0, len(full), limit):
+                            sn = _safe_name(f"{base}_p{k}", 31)
+                            k += 1
+                            bloc = full.iloc[start:start + limit]
+                            bloc.to_excel(writer, sheet_name=sn, index=False)
+                            sheets.append({"sheet": sn, "rows": len(bloc)})
+                    exported.append({"sheets": sheets, "rows": len(full),
+                                     "group": gname, "channel": cname, **meta})
+                    infos.append({"canal": f"{gname}/{cname}", "unite": meta["unit"],
+                                  "points": len(full),
+                                  "scaling": ",".join(meta["scale_types"]) or "aucun"})
+        pd.DataFrame(infos).to_excel(writer, sheet_name="Infos", index=False)
+    manifest = {"source": str(path), "file_properties": struct["file_properties"],
+                "workbook": str(wb_path), "exported": exported}
+    with open(out_sub / "manifest.json", "w", encoding="utf-8") as fh:
+        json.dump(manifest, fh, indent=2, default=str)
+    return manifest
+
+
 def export_file(path: str | Path, out_dir: str | Path,
                 chunk_size: int = 100_000,
                 only_group: str | None = None,
                 only_channel: str | None = None,
-                split_rows: int | None = None) -> dict:
-    """Exporte tous les canaux (ou un seul) d'un .tdms vers CSV + manifest.
+                split_rows: int | None = None,
+                out_format: str = "csv") -> dict:
+    """Exporte tous les canaux (ou un seul) d'un .tdms vers CSV ou XLSX + manifest.
 
-    Arborescence : <out_dir>/<stem>/<groupe>_<canal>.csv (+ _partN.csv si split) + manifest.json
+    csv : <out_dir>/<stem>/<groupe>_<canal>.csv (+ _partN.csv si split).
+    xlsx : <out_dir>/<stem>/<stem>.xlsx (onglets par canal + Infos).
     """
     import json
+
+    if out_format == "xlsx":
+        return export_file_xlsx(path, out_dir, chunk_size=chunk_size,
+                                only_group=only_group, only_channel=only_channel,
+                                split_rows=split_rows)
 
     path = Path(path)
     out_sub = Path(out_dir) / _safe_name(path.stem)
@@ -274,8 +356,9 @@ def export_batch(input_path: str | Path, out_dir: str | Path,
                  chunk_size: int = 100_000,
                  only_group: str | None = None,
                  only_channel: str | None = None,
-                 split_rows: int | None = None) -> list[dict]:
-    """Exporte un fichier .tdms ou tout un dossier (glob *.tdms).
+                 split_rows: int | None = None,
+                 out_format: str = "csv") -> list[dict]:
+    """Exporte un fichier .tdms ou tout un dossier (glob *.tdms), en CSV ou XLSX.
 
     Retourne la liste des manifests (un par fichier source).
     Lève FileNotFoundError si rien trouvé.
@@ -292,7 +375,10 @@ def export_batch(input_path: str | Path, out_dir: str | Path,
     files = [f for f in files if f.suffix.lower() == ".tdms"]
     if not files:
         raise FileNotFoundError(f"Aucun .tdms trouvé pour : {input_path}")
+    if out_format not in ("csv", "xlsx"):
+        raise ValueError("out_format doit être 'csv' ou 'xlsx'")
     return [export_file(f, out_dir, chunk_size=chunk_size,
                         only_group=only_group,
                         only_channel=only_channel,
-                        split_rows=split_rows) for f in files]
+                        split_rows=split_rows,
+                        out_format=out_format) for f in files]

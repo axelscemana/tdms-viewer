@@ -41,6 +41,9 @@ def main() -> None:
     e.add_argument("--split", type=int, default=None, metavar="LIGNES",
                    help="découpe aussi en morceaux _partN.csv de LIGNES max "
                         "(ex. 500000, compatible Excel limité à 1048576 lignes)")
+    e.add_argument("--format", choices=["csv", "xlsx"], default="csv",
+                   help="csv : un fichier par canal (+ morceaux si --split). "
+                        "xlsx : un classeur par .tdms (onglets par canal + Infos)")
 
     a = p.parse_args()
     if a.cmd == "serve":
@@ -70,7 +73,16 @@ def main() -> None:
                                  chunk_size=a.chunk,
                                  only_group=a.group,
                                  only_channel=a.channel,
-                                 split_rows=a.split)
+                                 split_rows=a.split,
+                                 out_format=a.format)
+        if a.format == "xlsx":
+            total_wb = len(manifests)
+            total_rows = sum(e["rows"] for m in manifests for e in m["exported"])
+            print(f"OK {len(manifests)} fichier(s) .tdms -> "
+                  f"{total_wb} classeur(s) XLSX, {total_rows} lignes dans {a.out}/")
+            for m in manifests:
+                print(f" - {m['source']}\n    -> {m['workbook']}")
+            return
         total_files = sum(len(m["exported"]) for m in manifests)
         total_rows = sum(e["rows"] for m in manifests for e in m["exported"])
         total_parts = sum(len(e.get("parts", [])) for m in manifests for e in m["exported"])

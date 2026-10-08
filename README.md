@@ -32,6 +32,8 @@ python -m cli export --input data/lot_client --out exports --recursive
 python -m cli export --input data/gros.tdms --out exports --group Vibration --chunk 100000
 # gros fichiers (>1M lignes, limite Excel 1048576) : morceaux _partN.csv + CSV complet
 python -m cli export --input data/lot_client --out exports --recursive --split 500000
+# classeur Excel direct : un .xlsx par .tdms (onglets par canal + Infos)
+python -m cli export --input data/demo.tdms --out exports --format xlsx
 ```
 
 - Streaming par blocs (RAM constante, OK 2 Go), `manifest.json` par fichier.
