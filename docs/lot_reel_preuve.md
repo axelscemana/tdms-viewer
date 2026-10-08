@@ -1,9 +1,14 @@
-# Preuve lot reel : VeriStand 8133/8108 (sans DIAdem ni LabVIEW)
+# Traitement .tdms -> Excel + PDF : exemple sur fichiers publics NI
 
-Source : fichiers d'exemple publics NI VeriStand (repo NIVeriStandAdd-Ons/Time-Align-NIVS-TDMS-Files-Tool), usage demo locale.
-Fichiers testes : veristand_8133.tdms (2,21 Mo, 1 103 872 pts) + veristand_8108.tdms (2,24 Mo, 1 118 208 pts).
+Test réalisé sur des **fichiers d'exemple publics NI VeriStand** (repo NIVeriStandAdd-Ons/Time-Align-NIVS-TDMS-Files-Tool), pas des données client : veristand_8133.tdms (2,21 Mo, 1 103 872 pts) + veristand_8108.tdms (2,24 Mo, 1 118 208 pts).
 Commande : python -m cli export --input data/lot_reel --out exports/lot_reel -> 2 CSV, 2 222 080 lignes.
-Graphe controle : ![lot_reel_8133](lot_reel_8133.png)
+
+**Ce que reçoit le client :**
+- [exemple_export.xlsx](exemple_export.xlsx) : classeur Excel tel que livré (onglets par canal + Infos)
+- [rapport_exemple.pdf](rapport_exemple.pdf) : rapport PDF tel que livré (courbe + spectre)
+- ![lot_reel_8133](lot_reel_8133.png) : graphe de contrôle du lot
+
+**Confidentialité :** traitement en local sur mon poste, aucune donnée conservée ni partagée après livraison, accord de confidentialité possible.
 
 ## Scaling
 
