@@ -42,6 +42,7 @@ python -m cli export --input data/lot_client --out exports --recursive --split 5
   trace `scaling_applied, scale_types, unit`. Preuve sur lot réel VeriStand :
   voir `docs/lot_reel_preuve.md` + `docs/lot_reel_8133.png`.
 - Le dashboard accepte aussi les `.csv` exportés (même analyse FFT/filtres/pics + PDF).
+- Bilingue FR/EN : sélecteur dans la barre latérale, le site ET le PDF changent de langue.
 
 ## Docker (pour les PC sans Python)
 

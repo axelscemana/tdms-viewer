@@ -145,3 +145,17 @@ def test_export_separator_excel_fr(sample_tdms, tmp_path):
     export_channel_to_csv(sample_tdms, "Vibration", "accel_x", out)
     header = out.read_text(encoding="utf-8").splitlines()[0]
     assert header == "x;y"  # ouverture directe en 2 colonnes dans Excel FR
+
+
+def test_pdf_builds_both_languages(sample_tdms, tmp_path):
+    from report import build_pdf
+    d = read_channel_decimated(sample_tdms, "Vibration", "accel_x", max_points=2000)
+    for lang in ("fr", "en"):
+        out = tmp_path / f"r_{lang}.pdf"
+        build_pdf(out, {"author": "pytest", "taille_fichier": 1234567}, "Vibration/accel_x",
+                  d["properties"], FS, d["x"], d["y"], [],
+                  np.array([0.0, 50.0]), np.array([0.01, 1.0]), lang=lang)
+        assert out.stat().st_size > 0
+    fr = (tmp_path / "r_fr.pdf").read_bytes()
+    en = (tmp_path / "r_en.pdf").read_bytes()
+    assert fr != en  # titres/libellés différents selon la langue
