@@ -34,6 +34,13 @@ def write_tdms(output: Path, duration: float, fs: float, chunk: int, seed: int =
     rng = np.random.default_rng(seed)
     n = int(duration * fs)
     output.parent.mkdir(parents=True, exist_ok=True)
+    # supprime un vieux cache d'index qui fausserait la relecture nptdms
+    for stale in [Path(str(output) + "_index"), output.with_name(output.name + "_index")]:
+        try:
+            if stale.exists():
+                stale.unlink()
+        except OSError:
+            pass
 
     root = RootObject(properties={
         "author": "TDMS Viewer demo generator",

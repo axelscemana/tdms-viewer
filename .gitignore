@@ -4,6 +4,7 @@ venv/
 *.pyc
 .streamlit/secrets.toml
 data/
+exports/
 *.tdms
 *.tdms_index
 *.csv

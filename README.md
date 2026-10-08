@@ -24,6 +24,23 @@ streamlit run app.py                                    # http://localhost:8501
 
 Fichiers réels de test (fournis avec `nptdms`) : `data/real_samples/`.
 
+## Export batch (service : .tdms -> CSV)
+
+```powershell
+python -m cli export --input data/demo.tdms --out exports
+python -m cli export --input data/lot_client --out exports --recursive
+python -m cli export --input data/gros.tdms --out exports --group Vibration --chunk 100000
+# gros fichiers (>1M lignes, limite Excel 1048576) : morceaux _partN.csv + CSV complet
+python -m cli export --input data/lot_client --out exports --recursive --split 500000
+```
+
+- Streaming par blocs (RAM constante, OK 2 Go), `manifest.json` par fichier.
+- Noms LabVIEW avec `/ :` assainis pour Windows. Vieux `.tdms_index` ignoré auto.
+- Valeurs **scalées** (nptdms `scaled=True`) : le CSV contient des Volts, et le manifest
+  trace `scaling_applied, scale_types, unit`. Preuve sur lot réel VeriStand :
+  voir `docs/lot_reel_preuve.md` + `docs/lot_reel_8133.png`.
+- Le dashboard accepte aussi les `.csv` exportés (même analyse FFT/filtres/pics + PDF).
+
 ## Docker (pour les PC sans Python)
 
 ```powershell

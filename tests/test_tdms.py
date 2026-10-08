@@ -69,3 +69,72 @@ def test_pdf_builds(sample_tdms, tmp_path):
               d["properties"], FS, d["x"], d["y"], [],
               np.array([0.0, 50.0]), np.array([0.01, 1.0]))
     assert out.stat().st_size > 0
+
+
+def test_export_channel_chunked(sample_tdms, tmp_path):
+    import pandas as pd
+    from tdms_utils import export_channel_to_csv
+    out = tmp_path / "accel_x.csv"
+    info = export_channel_to_csv(sample_tdms, "Vibration", "accel_x",
+                                 out, chunk_size=3000)
+    assert info["rows"] == N
+    df = pd.read_csv(out)
+    assert list(df.columns) == ["x", "y"]
+    assert len(df) == N
+    # axe temps : wf_increment = 1/FS
+    assert abs(float(df["x"].iloc[1]) - 1.0 / FS) < 1e-9
+
+
+def test_export_batch_dossier(sample_tdms, tmp_path):
+    import json
+    import shutil
+    from pathlib import Path
+    from tdms_utils import export_batch
+    src = tmp_path / "src"
+    src.mkdir()
+    shutil.copy(sample_tdms, src / "a.tdms")
+    shutil.copy(sample_tdms, src / "b.tdms")
+    manifests = export_batch(src, tmp_path / "exports", chunk_size=4000)
+    assert len(manifests) == 2
+    for m in manifests:
+        assert len(m["exported"]) == 1
+        assert m["exported"][0]["rows"] == N
+    manifest_path = Path(manifests[0]["exported"][0]["file"]).parent / "manifest.json"
+    assert manifest_path.exists()
+    assert "author" in json.loads(manifest_path.read_text(encoding="utf-8"))["file_properties"]
+
+
+def test_scaling_info_extraction():
+    from tdms_utils import scaling_info
+    m = scaling_info({"NI_Scaling_Status": "unscaled",
+                      "NI_Scale[1]_Scale_Type": "Polynomial",
+                      "unit_string": "Volts"})
+    assert m["scaling_applied"] is True
+    assert m["scale_types"] == ["Polynomial"]
+    assert m["unit"] == "Volts"
+
+
+def test_export_manifest_scaling_fields(sample_tdms, tmp_path):
+    from tdms_utils import export_file
+    m = export_file(sample_tdms, tmp_path / "exp", chunk_size=4000)
+    e = m["exported"][0]
+    assert e["scaling_applied"] is True
+    assert e["unit"] == "g"
+    assert "scale_types" in e
+
+
+def test_export_split_excel_parts(sample_tdms, tmp_path):
+    import pandas as pd
+    from tdms_utils import export_channel_to_csv
+    out = tmp_path / "accel_x.csv"
+    info = export_channel_to_csv(sample_tdms, "Vibration", "accel_x",
+                                 out, chunk_size=3000, split_rows=4000)
+    assert info["rows"] == N
+    assert len(info["parts"]) == 3  # 4000 + 4000 + 2000
+    assert [p["rows"] for p in info["parts"]] == [4000, 4000, 2000]
+    full = pd.read_csv(out)
+    assert len(full) == N
+    recat = pd.concat([pd.read_csv(p["file"]) for p in info["parts"]],
+                      ignore_index=True)
+    assert len(recat) == N
+    assert recat["y"].equals(full["y"])
