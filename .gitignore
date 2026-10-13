@@ -8,3 +8,15 @@ exports/
 *.tdms
 *.tdms_index
 *.csv
+
+# confidentiel — jamais sur GitHub
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials*.json
+*_sa_key.json
+*.log
